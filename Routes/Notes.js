@@ -19,7 +19,7 @@ router.post(
     body("description").isLength({ min: 5 }),
   ],
   async function (req, res) {
-    const {title,description,tag} = req.body;
+    const { title, description, tag } = req.body;
     // If there are Errors then response gives bad request
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -27,45 +27,76 @@ router.post(
     }
 
     try {
-        const note = new Notes({
-            title,description,tag ,user : req.user.id,
-        })
-        const saved = await note.save();
-        res.send(saved);
+      const note = new Notes({
+        title,
+        description,
+        tag,
+        user: req.user.id,
+      });
+      const saved = await note.save();
+      res.send(saved);
+    } catch (error) {
+      console.error(error.message);
+      res.status(500).send("Internal Server Error");
     }
-    catch(error){
-        console.error(error.message);
-        res.status(500).send("Internal Server Error");
-    }
-
-    res.json();
   }
 );
 
+// Route 3 : Update the Notes : GET "/api/notes/updateNotes" .
+router.put("/updateNotes/:id", findUser, async function (req, res) {
+  const { title, description, tag } = req.body;
+  // Create a note object
+  try {
+    const newNote = {};
+    if (title) {
+      newNote.title = title;
+    }
+    if (description) {
+      newNote.description = description;
+    }
+    if (tag) {
+      newNote.tag = tag;
+    }
 
-// Route 2 : Update the Notes : GET "/api/notes/updateNotes" .
-router.put(
-    "/updateNotes/:id",
-    findUser,
-    async function (req, res) {
-        const {title,description,tag} = req.body;
-        // Create a note object
-        const newNote = {};
-        if (title) {newNote.title = title}
-        if (description) {newNote.description = description}
-        if (tag) {newNote.tag = tag}
+    // Find the note to be updated and update it.
+    let note = await Notes.findById(req.params.id);
+    if (!note) {
+      return res.status(404).send("Not Found");
+    }
+    if (note.user.toString() !== req.user.id) {
+      return res.status(401).send("Not Allowed");
+    }
 
-        // Find the note to be updated and update it.
-        let note = await Notes.findById(req.params.id);
-        if (!note) {
-            return res.status(404).send("Not Found");
-        }
-        if (note.user.toString() !== req.user.id){
-            return res.status(401).send("Not Allowed");
-        }
+    note = await Notes.findByIdAndUpdate(
+      req.params.id,
+      { $set: newNote },
+      { new: true }
+    );
+    res.json({ note });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
-        note = await Notes.findByIdAndUpdate(req.params.id, {$set :newNote} , {new:true});
-        res.json({note});
-    });
+// Route 4 : Delete the Notes : DELETE "/api/notes/deleteNotes" .
+router.delete("/deleteNotes/:id", findUser, async function (req, res) {
+  // Find the note to be updated and update it.
+  try {
+    let note = await Notes.findById(req.params.id);
+    if (!note) {
+      return res.status(404).send("Not Found");
+    }
+    if (note.user.toString() !== req.user.id) {
+      return res.status(401).send("Not Allowed");
+    }
+
+    note = await Notes.findByIdAndDelete(req.params.id);
+    res.json({ Succes: "Note Has Been Deleted", note: note });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send("Internal Server Error");
+  }
+});
 
 module.exports = router;
