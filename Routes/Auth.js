@@ -5,8 +5,12 @@ const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const findUser = require('../Middleware/findUser');
+
 const  JWT_AUTH = "mynameist@j@";
 
+
+// Route 1
 router.post('/createUser', 
     body('name').isLength({ min: 3 }),
     body('email').isEmail(),
@@ -52,6 +56,7 @@ router.post('/createUser',
 });
 
 // A End point for Login Credentials
+// Route 2
 router.post('/login', 
     [body('email',"Enter a Valid Email").isEmail(),
     body('password',"Password Unknown").exists(),],
@@ -92,4 +97,20 @@ router.post('/login',
 })
 
 
+// Route 3
+// Get Logined  In User Details "api/auth/getUser
+router.post('/getuser', findUser ,async function(req, res) {
+try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select("-password");
+    res.send(user);
+
+} 
+catch (error) {
+        console.error(error.message);
+        res.status(500).send("Internal Server Error");
+}
+
+});
 module.exports = router;
+
